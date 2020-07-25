@@ -1,24 +1,75 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
-
+import axios from "axios";
+import "bootstrap/dist/css/bootstrap.min.css";
+import React, { useEffect, useState } from "react";
+import { Container, Spinner } from "react-bootstrap";
+import { Link, useParams } from "react-router-dom";
+import "./App.css";
+import { LineChart, TableComponent } from "./components";
 function App() {
+  let uRLparams = useParams();
+
+  console.log("urlParams:", uRLparams.id);
+  const [loader, setLoader] = useState(false);
+  const [newsdata, setNewsData] = useState(null);
+  const [totalPages, setTotalPages] = useState(null);
+  const page = uRLparams.id !== undefined ? uRLparams.id : 1;
+
+  useEffect(() => {
+    (async () => {
+      setLoader(true);
+      await axios
+        .get(`https://hn.algolia.com/api/v1/search?tags=story&page=${page}`)
+        .then((res) => {
+          setNewsData(res.data.hits);
+          setTotalPages(res.data.nbPages);
+          setLoader(false);
+        });
+    })();
+  }, [page]);
+  console.log(totalPages);
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <Container>
+        <TableComponent data={newsdata} loader={loader} />
+
+        <div style={{ borderBottom: "3px solid #ff742b", align: "right" }}>
+          {loader ? (
+            <Spinner animation="border" variant="warning" />
+          ) : page > 1 ? (
+            <Link
+              to={`/page/${parseInt(page) - 1}`}
+              style={{ color: "#ff742b", fontWeight: "bold" }}
+            >
+              Prev
+            </Link>
+          ) : (
+            <span>Prev</span>
+          )}
+
+          {loader ? null : (
+            <span style={{ marginLeft: 5, marginRight: 5 }}> | </span>
+          )}
+
+          {loader ? null : totalPages - 1 > page ? (
+            <Link
+              to={`/page/${parseInt(page) + 1}`}
+              style={{ color: "#ff742b", fontWeight: "bold" }}
+            >
+              Next
+            </Link>
+          ) : (
+            <span>Next</span>
+          )}
+        </div>
+
+        {loader ? (
+          <span>charts loading...</span>
+        ) : (
+          newsdata !== null && <LineChart data={newsdata} />
+        )}
+
+        <br />
+      </Container>
     </div>
   );
 }
